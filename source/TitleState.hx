@@ -83,6 +83,7 @@ class TitleState extends MusicBeatState
 
 	override public function create():Void
 	{
+		scripts.FunkinHScript.init();
 		Paths.clearStoredMemory();
 		Paths.clearUnusedMemory();
 
@@ -196,26 +197,21 @@ class TitleState extends MusicBeatState
 		#elseif CHARTING
 		MusicBeatState.switchState(new ChartingState());
 		#else
-		if(FlxG.save.data.flashing == null && !FlashingState.leftState) {
-			FlxTransitionableState.skipNextTransIn = true;
-			FlxTransitionableState.skipNextTransOut = true;
-			MusicBeatState.switchState(new FlashingState());
-		} else {
-			#if desktop
-			if (!DiscordClient.isInitialized)
-			{
-				DiscordClient.initialize();
-				Application.current.onExit.add (function (exitCode) {
-					DiscordClient.shutdown();
-				});
-			}
-			#end
-
-			new FlxTimer().start(1, function(tmr:FlxTimer)
-			{
-				startIntro();
+		#if desktop
+		if (!DiscordClient.isInitialized)
+		{
+			DiscordClient.initialize();
+			Application.current.onExit.add (function (exitCode) {
+				DiscordClient.shutdown();
 			});
 		}
+		#end
+
+		new FlxTimer().start(1, function(tmr:FlxTimer)
+		{
+			startIntro();
+		});
+
 		#end
 	}
 
@@ -229,6 +225,8 @@ class TitleState extends MusicBeatState
 	{
 		if (!initialized)
 		{
+			FlxTransitionableState.defaultTransIn = FadeTransitionSubstate;
+			FlxTransitionableState.defaultTransOut = FadeTransitionSubstate;
 			/*var diamond:FlxGraphic = FlxGraphic.fromClass(GraphicTransTileDiamond);
 			diamond.persist = true;
 			diamond.destroyOnNoUse = false;

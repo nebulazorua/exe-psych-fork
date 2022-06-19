@@ -1,3 +1,5 @@
+// while this CAN be apart of NotesSubState
+// fuck you
 package options;
 
 #if desktop
@@ -27,12 +29,13 @@ import Controls;
 
 using StringTools;
 
-class NotesSubState extends MusicBeatSubstate
+class QuantNotesSubState extends MusicBeatSubstate
 {
 	private static var curSelected:Int = 0;
 	private static var typeSelected:Int = 0;
 	private var grpNumbers:FlxTypedGroup<Alphabet>;
 	private var grpNotes:FlxTypedGroup<FlxSprite>;
+	private var grpQuants:FlxTypedGroup<AttachedText>;
 	private var shaderArray:Array<HSLColorSwap> = [];
 	var curValue:Float = 0;
 	var holdTime:Float = 0;
@@ -42,6 +45,35 @@ class NotesSubState extends MusicBeatSubstate
 	var hsbText:Alphabet;
 
 	var posX = 230;
+
+	public static var defaults:Array<Array<Int>> = [
+		[0, -20, 0], // 4th
+		[-130, -20, 0], // 8th
+		[-80, -20, 0], // 12th
+		[128, -30, 0], // 16th
+		[-120, -70, -35], // 20th
+		[-80, -20, 0], // 24th
+		[50, -20, 0], // 32nd
+		[-80, -20, 0], // 48th
+		[160, -15, 0], // 64th
+		[-120, -70, -35], // 96th
+		[-120, -70, -35] // 192nd
+	];
+
+	public static var quantizations:Array<String> = [
+		"4th",
+		"8th",
+		"12th",
+		"16th",
+		"20th",
+		"24th",
+		"32nd",
+		"48th",
+		"64th",
+		"96th",
+		"192nd"
+	];
+
 	public function new() {
 		super();
 
@@ -57,30 +89,37 @@ class NotesSubState extends MusicBeatSubstate
 
 		grpNotes = new FlxTypedGroup<FlxSprite>();
 		add(grpNotes);
+		grpQuants = new FlxTypedGroup<AttachedText>();
+		add(grpQuants);
 		grpNumbers = new FlxTypedGroup<Alphabet>();
 		add(grpNumbers);
 
-		for (i in 0...ClientPrefs.arrowHSV.length) {
+		for (i in 0...ClientPrefs.quantHSV.length) {
 			var yPos:Float = (165 * i) + 35;
 			for (j in 0...3) {
-				var optionText:Alphabet = new Alphabet(0, yPos + 60, Std.string(ClientPrefs.arrowHSV[i][j]), true);
+				var optionText:Alphabet = new Alphabet(0, yPos + 60, Std.string(ClientPrefs.quantHSV[i][j]), true);
 				optionText.x = posX + (225 * j) + 250;
 				grpNumbers.add(optionText);
 			}
 
 			var note:FlxSprite = new FlxSprite(posX, yPos);
-			note.frames = Paths.getSparrowAtlas('NOTE_assets');
+			note.frames = Paths.getSparrowAtlas('QUANTNOTE_assets');
+
+			var txt:AttachedText = new AttachedText(quantizations[i], 0, 0, true);
+			txt.sprTracker = note;
+			txt.copyAlpha=true;
+			add(txt);
 			var animations:Array<String> = ['purple0', 'blue0', 'green0', 'red0'];
-			note.animation.addByPrefix('idle', animations[i]);
+			note.animation.addByPrefix('idle', animations[i % 4]);
 			note.animation.play('idle');
 			note.antialiasing = ClientPrefs.globalAntialiasing;
 			grpNotes.add(note);
 
 			var newShader:HSLColorSwap = new HSLColorSwap();
 			note.shader = newShader.shader;
-			newShader.hue = ClientPrefs.arrowHSV[i][0] / 360;
-			newShader.saturation = ClientPrefs.arrowHSV[i][1] / 100;
-			newShader.lightness = ClientPrefs.arrowHSV[i][2] / 100;
+			newShader.hue = ClientPrefs.quantHSV[i][0] / 360;
+			newShader.saturation = ClientPrefs.quantHSV[i][1] / 100;
+			newShader.lightness = ClientPrefs.quantHSV[i][2] / 100;
 			shaderArray.push(newShader);
 		}
 
@@ -184,17 +223,40 @@ class NotesSubState extends MusicBeatSubstate
 		if(nextAccept > 0) {
 			nextAccept -= 1;
 		}
+
+		for(i in 0...grpNotes.length){
+			var yIndex = i;
+			var item = grpNotes.members[i];
+			if(curSelected>2)
+				yIndex -= curSelected - 2;
+
+			var lerpVal:Float = 0.4 * (elapsed / (1/120) );
+
+			var yPos:Float = (165 * yIndex) + 35;
+
+			item.y = FlxMath.lerp(item.y, yPos, lerpVal);
+			if(i == curSelected){
+				hsbText.y = FlxMath.lerp(hsbText.y, yPos-70, lerpVal);
+				blackBG.y = FlxMath.lerp(blackBG.y, yPos-20, lerpVal);
+			}
+		}
+
+		for (i in 0...grpNumbers.length) {
+			var item = grpNumbers.members[i];
+			item.y = grpNotes.members[Math.floor(i/3)].y + 60;
+		}
+
 		super.update(elapsed);
 	}
 
 	function changeSelection(change:Int = 0) {
 		curSelected += change;
 		if (curSelected < 0)
-			curSelected = ClientPrefs.arrowHSV.length-1;
-		if (curSelected >= ClientPrefs.arrowHSV.length)
+			curSelected = ClientPrefs.quantHSV.length-1;
+		if (curSelected >= ClientPrefs.quantHSV.length)
 			curSelected = 0;
 
-		curValue = ClientPrefs.arrowHSV[curSelected][typeSelected];
+		curValue = ClientPrefs.quantHSV[curSelected][typeSelected];
 		updateValue();
 
 		for (i in 0...grpNumbers.length) {
@@ -206,13 +268,12 @@ class NotesSubState extends MusicBeatSubstate
 		}
 		for (i in 0...grpNotes.length) {
 			var item = grpNotes.members[i];
+
 			item.alpha = 0.6;
 			item.scale.set(0.75, 0.75);
 			if (curSelected == i) {
 				item.alpha = 1;
 				item.scale.set(1, 1);
-				hsbText.y = item.y - 70;
-				blackBG.y = item.y - 20;
 			}
 		}
 		FlxG.sound.play(Paths.sound('scrollMenu'));
@@ -225,7 +286,7 @@ class NotesSubState extends MusicBeatSubstate
 		if (typeSelected > 2)
 			typeSelected = 0;
 
-		curValue = ClientPrefs.arrowHSV[curSelected][typeSelected];
+		curValue = ClientPrefs.quantHSV[curSelected][typeSelected];
 		updateValue();
 
 		for (i in 0...grpNumbers.length) {
@@ -239,11 +300,14 @@ class NotesSubState extends MusicBeatSubstate
 
 	function resetValue(selected:Int, type:Int) {
 		curValue = 0;
-		ClientPrefs.arrowHSV[selected][type] = 0;
+		ClientPrefs.quantHSV[selected][type] = defaults[selected][type];
 		switch(type) {
-			case 0: shaderArray[selected].hue = 0;
-			case 1: shaderArray[selected].saturation = 0;
-			case 2: shaderArray[selected].lightness = 0;
+			case 0:
+				shaderArray[selected].hue = defaults[selected][type];
+			case 1:
+				shaderArray[selected].saturation = defaults[selected][type];
+			case 2:
+				shaderArray[selected].lightness = defaults[selected][type];
 		}
 
 		var item = grpNumbers.members[(selected * 3) + type];
@@ -264,7 +328,7 @@ class NotesSubState extends MusicBeatSubstate
 			curValue = max;
 		}
 		roundedValue = Math.round(curValue);
-		ClientPrefs.arrowHSV[curSelected][typeSelected] = roundedValue;
+		ClientPrefs.quantHSV[curSelected][typeSelected] = roundedValue;
 
 		switch(typeSelected) {
 			case 0: shaderArray[curSelected].hue = roundedValue / 360;

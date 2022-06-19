@@ -53,6 +53,19 @@ class Main extends Sprite
 		setupGame();
 	}
 
+	public static function setScaleMode(scale:String){
+		switch(scale){
+			default:
+				Lib.current.stage.scaleMode = StageScaleMode.NO_SCALE;
+			case 'EXACT_FIT':
+				Lib.current.stage.scaleMode = StageScaleMode.EXACT_FIT;
+			case 'NO_BORDER':
+				Lib.current.stage.scaleMode = StageScaleMode.NO_BORDER;
+			case 'SHOW_ALL':
+				Lib.current.stage.scaleMode = StageScaleMode.SHOW_ALL;
+		}
+	}
+
 	private function setupGame():Void
 	{
 		var stageWidth:Int = Lib.current.stage.stageWidth;
@@ -70,7 +83,7 @@ class Main extends Sprite
 		#if !debug
 		initialState = TitleState;
 		#end
-	
+
 		ClientPrefs.loadDefaultKeys();
 		addChild(new FlxGame(gameWidth, gameHeight, initialState, zoom, framerate, framerate, skipSplash, startFullscreen));
 
