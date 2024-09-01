@@ -4,4 +4,4 @@ Adds quant notes, hscript and a shitty Playfield system that I really didnt thin
 also epics from Andromeda lol
 
 
-also the basis for NightmareVision
+also the base for NightmareVision and originally for Troll Engine (though TE still inherits alot of code from here)
